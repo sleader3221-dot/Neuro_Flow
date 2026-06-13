@@ -3,7 +3,6 @@ import { useApp } from '../context/AppContext';
 import { Plus, RotateCcw, ChevronLeft, ChevronRight, Trash2, Wand2, BookOpen, X, Upload, Keyboard } from 'lucide-react';
 import { sm2Review, getDueCards, getCardStats } from '../utils/spacedRepetition';
 import { generateFlashcards, generateFlashcardsFromText } from '../utils/ai';
-import { generateId } from '../utils/storage';
 
 const COLORS = ['#7c3aed','#06b6d4','#10b981','#f59e0b','#ec4899','#f97316'];
 

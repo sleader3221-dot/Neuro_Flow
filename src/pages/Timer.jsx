@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useApp } from '../context/AppContext';
 import { Play, Pause, RotateCcw, Settings, Coffee, Zap, CheckCircle, Clock, X } from 'lucide-react';
 

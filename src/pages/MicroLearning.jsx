@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useApp } from '../context/AppContext';
 import { useNavigate } from 'react-router-dom';
-import { Zap, CheckCircle, XCircle, Clock, Flame, Target, Star, RotateCcw } from 'lucide-react';
+import { Zap, CheckCircle, XCircle, Clock, Flame, Target, Star, RotateCcw, BookOpen } from 'lucide-react';
 import { getDueCards } from '../utils/spacedRepetition';
 
-const TIME_PER_Q = 12; // seconds per question in burst mode
+const TIME_PER_Q = 60; // seconds per question in burst mode (5 questions × 60s = 5 min)
 
 // Generate a quick burst question from a flashcard
 function cardToQuestion(card) {
@@ -242,7 +242,7 @@ export default function MicroLearning() {
           <div style={{ fontSize: 64, marginBottom: 16 }}>⚡</div>
           <h2 style={{ fontSize: 'var(--text-2xl)', marginBottom: 8 }}>Quick Knowledge Burst</h2>
           <p style={{ color: 'var(--text-secondary)', marginBottom: 24, maxWidth: 360, margin: '0 auto 24px' }}>
-            5 questions · 12 seconds each · Targets your due cards and weak areas
+            5 questions · 60 seconds each · Targets your due cards and weak areas
           </p>
           <button className="btn btn-primary btn-lg" onClick={startBurst} style={{ fontSize: 'var(--text-base)' }}>
             <Zap size={20} /> Start Burst!
