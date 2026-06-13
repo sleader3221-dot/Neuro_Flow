@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useApp } from '../context/AppContext';
 import { useNavigate } from 'react-router-dom';
 import { Zap, CheckCircle, XCircle, Clock, Flame, Target, Star, RotateCcw, BookOpen } from 'lucide-react';
@@ -70,7 +70,7 @@ export default function MicroLearning() {
 
   useEffect(() => {
     if (phase !== 'burst') return;
-    if (timeLeft <= 0) {
+    if (timeLeft <= 0 && !showAnswer) {
       markResult(false);
       return;
     }
@@ -129,7 +129,7 @@ export default function MicroLearning() {
   const current = questions[qIdx];
   const progress = questions.length ? ((qIdx) / questions.length) * 100 : 0;
   const timerPct = (timeLeft / TIME_PER_Q) * 100;
-  const timerColor = timeLeft <= 4 ? '#ef4444' : timeLeft <= 8 ? '#f59e0b' : '#10b981';
+  const timerColor = timeLeft <= 10 ? '#ef4444' : timeLeft <= 20 ? '#f59e0b' : '#10b981';
 
   if (phase === 'burst' && current) {
     return (
@@ -276,7 +276,7 @@ export default function MicroLearning() {
         <div className="glass-card" style={{ marginTop: 'var(--space-6)' }}>
           <h3 style={{ marginBottom: 'var(--space-4)', fontSize: 'var(--text-base)' }}>💡 How Burst Mode Works</h3>
           {[
-            { icon: '⏱️', text: '5 questions, 12 seconds each = under 2 minutes total' },
+            { icon: '⏱️', text: '5 questions, 60 seconds each = 5 minutes total' },
             { icon: '🎯', text: 'Questions pulled from your overdue flashcards first' },
             { icon: '🔥', text: 'Build a daily burst streak for bonus XP rewards' },
             { icon: '📱', text: 'Perfect for studying between classes or on the go' },
