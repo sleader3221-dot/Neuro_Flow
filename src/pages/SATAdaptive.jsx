@@ -1,483 +1,808 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
 import {
   Brain, ChevronRight, RotateCcw, CheckCircle, XCircle, Clock,
-  TrendingUp, Target, Zap, Award, BookOpen, AlertTriangle, BarChart3
+  TrendingUp, Target, Zap, Award, BookOpen, AlertTriangle, BarChart3,
+  Lightbulb, BookMarked, GraduationCap, Pen, FileText, List, Play, Pause
 } from 'lucide-react';
-import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, RadarChart, Radar, PolarGrid, PolarAngleAxis } from 'recharts';
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, RadarChart, Radar, PolarGrid, PolarAngleAxis, BarChart, Bar, CartesianGrid, PieChart, Pie, Cell, Legend } from 'recharts';
 
-// ── SAT Question Bank ─────────────────────────────────────────────────────────
-const SAT_QUESTIONS = {
-  'Math - Algebra': [
-    { id: 'm1', q: 'If 3x + 7 = 22, what is the value of x?', opts: ['3', '5', '7', '9'], ans: 1, exp: '3x = 15, so x = 5.', diff: 1 },
-    { id: 'm2', q: 'Which of the following is equivalent to (x + 3)² - 9?', opts: ['x² + 6x', 'x² + 6x + 9', 'x² + 9', 'x(x + 6)'], ans: 0, exp: '(x+3)² - 9 = x² + 6x + 9 - 9 = x² + 6x = x(x+6)', diff: 2 },
-    { id: 'm3', q: 'If f(x) = 2x² - 3x + 1, what is f(3)?', opts: ['10', '11', '12', '16'], ans: 0, exp: 'f(3) = 2(9) - 3(3) + 1 = 18 - 9 + 1 = 10', diff: 2 },
-    { id: 'm4', q: 'The sum of three consecutive integers is 48. What is the smallest integer?', opts: ['14', '15', '16', '17'], ans: 1, exp: 'n + (n+1) + (n+2) = 48 → 3n + 3 = 48 → n = 15', diff: 2 },
-    { id: 'm5', q: 'If 2⁴ˣ = 8³, what is x?', opts: ['3/8', '9/8', '3/4', '9/4'], ans: 1, exp: '2⁴ˣ = (2³)³ = 2⁹, so 4x = 9, x = 9/4', diff: 3 },
-    { id: 'm6', q: 'What is the y-intercept of the line 4x - 2y = 10?', opts: ['-5', '5', '-2', '2'], ans: 0, exp: 'Set x=0: -2y = 10, y = -5', diff: 1 },
-    { id: 'm7', q: 'The system: y = 2x + 1 and y = -x + 7. What is x?', opts: ['1', '2', '3', '4'], ans: 1, exp: '2x+1 = -x+7 → 3x = 6 → x = 2', diff: 2 },
-    { id: 'm8', q: 'If |2x - 4| = 10, which of the following is a solution?', opts: ['x = 7', 'x = -3', 'Both A and B', 'Neither'], ans: 2, exp: '2x-4=10 → x=7; 2x-4=-10 → x=-3. Both are valid.', diff: 3 },
+const DOMAINS = [
+  { id: 'algebra', label: 'Algebra', icon: 'x²', color: '#7c3aed' },
+  { id: 'data', label: 'Data Analysis', icon: '📊', color: '#06b6d4' },
+  { id: 'geometry', label: 'Geometry', icon: '△', color: '#10b981' },
+  { id: 'advanced', label: 'Advanced Math', icon: '∫', color: '#f59e0b' },
+  { id: 'vocabulary', label: 'Vocabulary', icon: '📖', color: '#ec4899' },
+  { id: 'grammar', label: 'Grammar', icon: '✏️', color: '#f97316' },
+  { id: 'comprehension', label: 'Comprehension', icon: '📚', color: '#8b5cf6' },
+];
+
+const QUESTION_BANK = {
+  algebra: [
+    { q: 'If 3x + 7 = 22, what is x?', opts: ['3', '5', '7', '9'], ans: 1, diff: 1, exp: '3x = 15, so x = 5' },
+    { q: 'Expand (x+3)(x-2)', opts: ['x²+x-6', 'x²-5x-6', 'x²+5x+6', 'x²-x+6'], ans: 0, diff: 1, exp: '(x+3)(x-2) = x² -2x + 3x -6 = x²+x-6' },
+    { q: 'If f(x) = 2x²-3x+1, what is f(3)?', opts: ['10', '11', '12', '16'], ans: 0, diff: 2, exp: 'f(3) = 2(9)-3(3)+1 = 18-9+1 = 10' },
+    { q: 'Sum of three consecutive integers is 48. Find smallest.', opts: ['14', '15', '16', '17'], ans: 1, diff: 2, exp: 'n+(n+1)+(n+2)=48 → 3n+3=48 → n=15' },
+    { q: 'If 2^(4x) = 8³, what is x?', opts: ['3/8', '9/8', '3/4', '9/4'], ans: 3, diff: 3, exp: '2^(4x) = (2³)³ = 2⁹, so 4x=9, x=9/4' },
+    { q: 'Solve |2x-4| = 10', opts: ['x=7', 'x=-3', 'x=7 or x=-3', 'x=3 or x=-7'], ans: 2, diff: 3, exp: '2x-4=10 → x=7; 2x-4=-10 → x=-3' },
+    { q: 'Line through (2,5) with slope 3. Equation?', opts: ['y=3x-1', 'y=3x+1', 'y=3x-11', 'y=3x+11'], ans: 0, diff: 2, exp: 'y-5=3(x-2) → y=3x-6+5=3x-1' },
+    { q: 'If a≠0 and a² = 3a, what is a?', opts: ['0', '3', '0 or 3', '-3'], ans: 2, diff: 2, exp: 'a²-3a=0 → a(a-3)=0 → a=0 or a=3. a≠0 so a=3' },
+    { q: 'Simplify √(x⁶y³)', opts: ['x³y√y', 'x³y³', 'x²y√y', 'x²y³'], ans: 0, diff: 2, exp: '√(x⁶) = x³, √(y³) = y√y → x³y√y' },
+    { q: 'If f(x) = 3x-2, what is f⁻¹(x)?', opts: ['(x+2)/3', '3x+2', '(x-2)/3', '(2-x)/3'], ans: 0, diff: 3, exp: 'Swap: x=3y-2 → y=(x+2)/3' },
   ],
-  'Math - Data Analysis': [
-    { id: 'd1', q: 'A dataset: 3, 5, 7, 9, 11. What is the mean?', opts: ['6', '7', '8', '9'], ans: 1, exp: 'Mean = (3+5+7+9+11)/5 = 35/5 = 7', diff: 1 },
-    { id: 'd2', q: 'If a line of best fit has equation y = 1.5x + 2, what is the predicted y when x = 4?', opts: ['6', '7', '8', '9'], ans: 2, exp: 'y = 1.5(4) + 2 = 6 + 2 = 8', diff: 1 },
-    { id: 'd3', q: 'A car travels 150 miles in 3 hours. What is its average speed in miles per hour?', opts: ['45', '50', '55', '60'], ans: 1, exp: 'Speed = distance/time = 150/3 = 50 mph', diff: 1 },
-    { id: 'd4', q: 'A store marks up items by 40%. If an item costs $25, what is the selling price?', opts: ['$30', '$35', '$40', '$45'], ans: 1, exp: '$25 × 1.40 = $35', diff: 2 },
-    { id: 'd5', q: 'What percent of 80 is 12?', opts: ['10%', '12%', '15%', '20%'], ans: 2, exp: '(12/80) × 100 = 15%', diff: 2 },
-    { id: 'd6', q: 'Data: 4, 8, 12, 16, 20. The standard deviation is closest to?', opts: ['4', '5.7', '6.3', '8'], ans: 2, exp: 'Mean=12. Variance = [(64+16+0+16+64)/5] = 32. SD = √32 ≈ 5.66 ≈ 5.7', diff: 3 },
+  data: [
+    { q: 'Mean of 3,5,7,9,11?', opts: ['6', '7', '8', '9'], ans: 1, diff: 1, exp: '(3+5+7+9+11)/5 = 35/5 = 7' },
+    { q: 'Line of best fit: y=1.5x+2. Predict y when x=4', opts: ['6', '7', '8', '9'], ans: 2, diff: 1, exp: 'y=1.5(4)+2 = 6+2 = 8' },
+    { q: '150 miles in 3 hours. Average speed?', opts: ['45', '50', '55', '60'], ans: 1, diff: 1, exp: '150/3 = 50 mph' },
+    { q: '40% markup on $25 item. Selling price?', opts: ['$30', '$35', '$40', '$45'], ans: 1, diff: 2, exp: '$25 × 1.40 = $35' },
+    { q: 'What percent of 80 is 12?', opts: ['10%', '12%', '15%', '20%'], ans: 2, diff: 2, exp: '(12/80) × 100 = 15%' },
+    { q: 'Median of 2,5,8,12,19?', opts: ['5', '8', '9', '12'], ans: 1, diff: 1, exp: 'Sorted: 2,5,8,12,19. Middle = 8' },
+    { q: 'Probability of rolling sum 7 with two dice?', opts: ['1/6', '1/9', '1/12', '1/36'], ans: 0, diff: 2, exp: 'Favorable: (1,6),(2,5),(3,4),(4,3),(5,2),(6,1) = 6/36 = 1/6' },
+    { q: 'SD of 4,8,12,16,20? Closest to:', opts: ['4', '5.7', '6.3', '8'], ans: 1, diff: 3, exp: 'Mean=12. Var=[64+16+0+16+64]/5=32. SD≈5.66' },
+    { q: 'Correlation r=-0.9 indicates:', opts: ['Strong positive', 'Strong negative', 'No correlation', 'Weak negative'], ans: 1, diff: 2, exp: 'r=-0.9 is close to -1 → strong negative correlation' },
   ],
-  'Math - Geometry': [
-    { id: 'g1', q: 'A circle has radius 5. What is its area? (use π ≈ 3.14)', opts: ['31.4', '62.8', '78.5', '94.2'], ans: 2, exp: 'A = πr² = 3.14 × 25 = 78.5', diff: 1 },
-    { id: 'g2', q: 'A right triangle has legs 6 and 8. What is the hypotenuse?', opts: ['9', '10', '11', '12'], ans: 1, exp: '√(36+64) = √100 = 10', diff: 1 },
-    { id: 'g3', q: 'Two parallel lines are cut by a transversal. If one angle is 65°, its co-interior angle is?', opts: ['65°', '115°', '125°', '180°'], ans: 1, exp: 'Co-interior (same-side interior) angles are supplementary: 180° - 65° = 115°', diff: 2 },
-    { id: 'g4', q: 'A rectangular box has dimensions 3 × 4 × 5. What is its volume?', opts: ['47', '60', '72', '80'], ans: 1, exp: 'V = l × w × h = 3 × 4 × 5 = 60', diff: 1 },
-    { id: 'g5', q: 'In triangle ABC, angle A = 50° and angle B = 70°. What is angle C?', opts: ['50°', '60°', '70°', '80°'], ans: 1, exp: 'A + B + C = 180°. C = 180 - 50 - 70 = 60°', diff: 1 },
+  geometry: [
+    { q: 'Circle area with radius 5 (π≈3.14)', opts: ['31.4', '62.8', '78.5', '94.2'], ans: 2, diff: 1, exp: 'A=πr²=3.14×25=78.5' },
+    { q: 'Right triangle legs 6,8. Hypotenuse?', opts: ['9', '10', '11', '12'], ans: 1, diff: 1, exp: '√(36+64)=√100=10' },
+    { q: 'Box 3×4×5. Volume?', opts: ['47', '60', '72', '80'], ans: 1, diff: 1, exp: '3×4×5=60' },
+    { q: 'Triangle angles 50°,70°. Third angle?', opts: ['50°', '60°', '70°', '80°'], ans: 1, diff: 1, exp: '180-50-70=60°' },
+    { q: 'Parallel lines cut by transversal, one angle 65°, co-interior?', opts: ['65°', '115°', '125°', '180°'], ans: 1, diff: 2, exp: 'Co-interior supplementary: 180-65=115°' },
+    { q: 'Cylinder radius 3, height 5. Volume?', opts: ['45π', '30π', '60π', '15π'], ans: 0, diff: 2, exp: 'V=πr²h=π×9×5=45π' },
+    { q: 'Arc length of 60° sector, r=6', opts: ['π', '2π', '3π', '6π'], ans: 1, diff: 3, exp: 'Arc = (60/360)×2πr = (1/6)×12π = 2π' },
+    { q: 'Distance between (1,2) and (4,6)?', opts: ['3', '4', '5', '7'], ans: 2, diff: 2, exp: '√[(4-1)²+(6-2)²]=√(9+16)=√25=5' },
   ],
-  'Math - Advanced': [
-    { id: 'a1', q: 'What is the sum of the solutions of x² - 5x + 6 = 0?', opts: ['3', '4', '5', '6'], ans: 2, exp: 'By Vieta\'s: sum of roots = -b/a = 5/1 = 5', diff: 2 },
-    { id: 'a2', q: 'sin²θ + cos²θ = ?', opts: ['0', '1', '2', 'varies'], ans: 1, exp: 'This is the Pythagorean identity: always equals 1', diff: 1 },
-    { id: 'a3', q: 'If log₂(x) = 5, what is x?', opts: ['10', '25', '32', '64'], ans: 2, exp: '2⁵ = 32, so x = 32', diff: 2 },
-    { id: 'a4', q: 'A function f is defined by f(x) = 3x - 2. What is f⁻¹(x)?', opts: ['(x+2)/3', '3x+2', '(x-2)/3', '(2-x)/3'], ans: 0, exp: 'Swap x and y: x = 3y-2 → y = (x+2)/3', diff: 3 },
-    { id: 'a5', q: 'What is the remainder when x³ - 2x + 1 is divided by (x - 1)?', opts: ['0', '1', '2', '-1'], ans: 0, exp: 'By Remainder Theorem: f(1) = 1 - 2 + 1 = 0', diff: 3 },
+  advanced: [
+    { q: 'Sum solutions x²-5x+6=0?', opts: ['3', '4', '5', '6'], ans: 2, diff: 2, exp: 'Vieta: sum = -b/a = 5' },
+    { q: 'sin²θ+cos²θ = ?', opts: ['0', '1', '2', 'varies'], ans: 1, diff: 1, exp: 'Pythagorean identity: always 1' },
+    { q: 'If log₂(x)=5, what is x?', opts: ['10', '25', '32', '64'], ans: 2, diff: 2, exp: '2⁵=32' },
+    { q: 'Remainder when x³-2x+1 divided by (x-1)?', opts: ['0', '1', '2', '-1'], ans: 0, diff: 3, exp: 'f(1)=1-2+1=0' },
+    { q: 'If i²=-1, what is (2+i)(3-i)?', opts: ['5+i', '7+i', '7+5i', '5+5i'], ans: 1, diff: 3, exp: '(2+i)(3-i)=6-2i+3i-i²=6+i+1=7+i' },
+    { q: 'What is the period of y=sin(2x)?', opts: ['π', '2π', 'π/2', '4π'], ans: 0, diff: 2, exp: 'Period = 2π/|b| = 2π/2 = π' },
+    { q: 'Limit x→0: sin(x)/x?', opts: ['0', '1', '∞', 'undefined'], ans: 1, diff: 3, exp: 'Fundamental limit: lim sin(x)/x = 1' },
   ],
-  'Reading & Writing - Vocabulary': [
-    { id: 'v1', q: 'The scientist\'s findings were considered _____ because no one could replicate her results. (Most precise word)', opts: ['dubious', 'interesting', 'exciting', 'clever'], ans: 0, exp: '"Dubious" means questionable/doubtful — perfect for non-replicable findings.', diff: 2 },
-    { id: 'v2', q: 'The politician\'s speech was filled with _____ promises that he had no intention of keeping.', opts: ['earnest', 'disingenuous', 'forthright', 'candid'], ans: 1, exp: '"Disingenuous" means not sincere — fits unfulfilled promises perfectly.', diff: 2 },
-    { id: 'v3', q: 'Which word best completes: "The treaty served as a _____ between the two warring nations."', opts: ['catalyst', 'bulwark', 'conduit', 'deterrent'], ans: 1, exp: '"Bulwark" means a defensive barrier — appropriate for peace agreements.', diff: 3 },
-    { id: 'v4', q: 'Her tone was _____ when she described the hardships she had endured growing up.', opts: ['elated', 'stoic', 'frantic', 'verbose'], ans: 1, exp: '"Stoic" means showing no emotion despite suffering.', diff: 2 },
-    { id: 'v5', q: 'The author uses _____ language to make complex scientific ideas accessible to general readers.', opts: ['arcane', 'lucid', 'cryptic', 'esoteric'], ans: 1, exp: '"Lucid" means clear and easy to understand.', diff: 1 },
+  vocabulary: [
+    { q: 'Non-replicable findings are considered:', opts: ['dubious', 'interesting', 'exciting', 'clever'], ans: 0, diff: 2, exp: '"Dubious" = questionable/doubtful' },
+    { q: 'Empty promises = ______ promises', opts: ['earnest', 'disingenuous', 'forthright', 'candid'], ans: 1, diff: 2, exp: '"Disingenuous" = not sincere' },
+    { q: 'Complex ideas made accessible using ____ language', opts: ['arcane', 'lucid', 'cryptic', 'esoteric'], ans: 1, diff: 1, exp: '"Lucid" = clear and easy to understand' },
+    { q: 'A treaty as a _____ between nations', opts: ['catalyst', 'bulwark', 'conduit', 'deterrent'], ans: 1, diff: 3, exp: '"Bulwark" = defensive barrier' },
+    { q: 'Enduring hardships with ____ tone', opts: ['elated', 'stoic', 'frantic', 'verbose'], ans: 1, diff: 2, exp: '"Stoic" = showing no emotion despite suffering' },
+    { q: '______ means to criticize severely', opts: ['laud', 'venerate', 'castigate', 'extol'], ans: 2, diff: 3, exp: '"Castigate" = to punish/criticize severely' },
+    { q: 'A ______ is a selfish person', opts: ['altruist', 'misanthrope', 'philanthropist', 'egoist'], ans: 3, diff: 2, exp: '"Egoist" = selfish person. "Altruist" = selfless' },
+    { q: '______ = to make something worse', opts: ['ameliorate', 'exacerbate', 'mitigate', 'alleviate'], ans: 1, diff: 2, exp: '"Exacerbate" = make worse. Others mean to improve/lessen' },
+    { q: 'A short, amusing story =', opts: ['anecdote', 'eulogy', 'narrative', 'chronicle'], ans: 0, diff: 1, exp: '"Anecdote" = short amusing story about a real incident' },
+    { q: '______ = something that causes a major change', opts: ['catalyst', 'obstacle', 'hindrance', 'impediment'], ans: 0, diff: 2, exp: '"Catalyst" = something that causes an important change' },
   ],
-  'Reading & Writing - Grammar': [
-    { id: 'r1', q: 'Which sentence is grammatically correct?', opts: ['Their going to the store.', 'There going to the store.', 'They\'re going to the store.', 'Theyre going to the store.'], ans: 2, exp: '"They\'re" is the contraction of "they are."', diff: 1 },
-    { id: 'r2', q: 'Choose the correct sentence:', opts: ['Each of the students have their books.', 'Each of the students has their books.', 'Each of the students have his books.', 'None of the above'], ans: 1, exp: '"Each" is singular, so it takes "has." "Their" is acceptable for gender-neutral reference.', diff: 2 },
-    { id: 'r3', q: 'Which correctly uses a semicolon?', opts: ['I like coffee; and tea.', 'She ran fast; however, she finished last.', 'He ate; quickly.', 'The dog; and cat played.'], ans: 1, exp: 'Semicolons connect independent clauses; "however" as a conjunctive adverb requires a semicolon before it.', diff: 2 },
-    { id: 'r4', q: 'The sentence "Walking down the street, the trees were beautiful." contains:', opts: ['A dangling modifier', 'Correct grammar', 'A run-on sentence', 'A comma splice'], ans: 0, exp: 'The subject of "walking" should be a person, not "the trees" — this is a dangling modifier.', diff: 3 },
+  grammar: [
+    { q: 'Which is correct?', opts: ['Their going to the store.', 'There going to the store.', "They're going to the store.", 'Theyre going to the store.'], ans: 2, diff: 1, exp: "They're = they are" },
+    { q: 'Correct sentence:', opts: ['Each of the students have their books.', 'Each of the students has their books.', 'Each of the students have his books.', 'None'], ans: 1, diff: 2, exp: '"Each" is singular → "has"' },
+    { q: 'Correct semicolon use:', opts: ['I like coffee; and tea.', 'She ran fast; however, she finished last.', 'He ate; quickly.', 'The dog; and cat played.'], ans: 1, diff: 2, exp: 'Semicolon connects independent clauses' },
+    { q: '"Walking down the street, the trees were beautiful" contains:', opts: ['Dangling modifier', 'Correct grammar', 'Run-on sentence', 'Comma splice'], ans: 0, diff: 3, exp: '"Walking" needs a person as subject, not "trees"' },
+    { q: 'Which is correct?', opts: ["Its a beautiful day.", "It's a beautiful day.", 'Its\' a beautiful day.', 'Its a beautiful day.'], ans: 1, diff: 1, exp: "It's = it is. Its = possessive" },
+    { q: 'Correct sentence:', opts: ['The team are playing well.', 'The team is playing well.', 'The team be playing well.', 'The team playing well.'], ans: 1, diff: 1, exp: 'Collective noun "team" takes singular verb' },
+    { q: 'The professor required that each student ___ the report.', opts: ['submits', 'submit', 'submitted', 'submitting'], ans: 1, diff: 3, exp: 'Subjunctive mood: "required that each student submit"' },
+    { q: 'Between you and ___, this is confidential.', opts: ['I', 'me', 'myself', 'we'], ans: 1, diff: 2, exp: 'Object of preposition "between" → objective case "me"' },
+    { q: 'The data ___ conclusive.', opts: ['is', 'are', 'was', 'being'], ans: 1, diff: 2, exp: '"Data" is plural → "are"' },
+    { q: 'I have ___ interest in that proposal.', opts: ['fewer', 'less', 'least', 'few'], ans: 1, diff: 2, exp: '"Interest" is uncountable → "less" (not "fewer")' },
+  ],
+  comprehension: [
+    { q: 'The author\'s primary purpose is to:', opts: ['Inform readers about a topic', 'Persuade readers to take action', 'Entertain with a story', 'Criticize a viewpoint'], ans: 0, diff: 1, exp: 'Main purpose questions test overall passage goal identification' },
+    { q: 'The passage suggests that the main challenge is:', opts: ['Finding adequate resources', 'Overcoming public resistance', 'Technical limitations', 'Lack of expertise'], ans: 1, diff: 2, exp: 'Inference questions require reading between the lines' },
+    { q: 'As used in the passage, "novel" most nearly means:', opts: ['Book', 'Fictional', 'New', 'Unusual'], ans: 2, diff: 2, exp: 'Context-dependent vocab: "novel approach" = new approach' },
+    { q: 'Which best describes the tone of the passage?', opts: ['Objective and analytical', 'Passionate and persuasive', 'Humorous and lighthearted', 'Critical and dismissive'], ans: 0, diff: 2, exp: 'Tone is determined by word choice and sentence structure' },
+    { q: 'The author mentions the study to:', opts: ['Support the main argument', 'Introduce a counterpoint', 'Provide background context', 'Criticize previous research'], ans: 0, diff: 2, exp: 'Evidence usually supports the author\'s claim' },
+    { q: 'Which statement best summarizes paragraph 2?', opts: ['It describes the problem', 'It proposes a solution', 'It provides historical context', 'It compares two theories'], ans: 2, diff: 1, exp: 'Summarizing identifies the paragraph\'s core function' },
+    { q: 'The author would most likely agree with:', opts: ['Statement A', 'Statement B', 'Statement C', 'Statement D'], ans: 0, diff: 3, exp: 'Author agreement requires synthesizing their overall position' },
+    { q: 'What does the example of X illustrate?', opts: ['A theoretical concept', 'A practical application', 'A common misconception', 'A historical development'], ans: 1, diff: 2, exp: 'Examples in passages typically illustrate real-world applications' },
   ],
 };
+const QUESTION_BANK_KEYS = Object.keys(QUESTION_BANK);
 
-const ALL_SECTIONS = Object.keys(SAT_QUESTIONS);
-
-// IRT-based difficulty adjustment
-function getNextDifficulty(currentDiff, correct) {
-  if (correct) return Math.min(3, currentDiff + 0.5);
-  return Math.max(1, currentDiff - 0.5);
+function estimateAbility(correct, total, difficulty) {
+  if (!total) return 0;
+  const pct = correct / total;
+  const avgDiff = difficulty / total;
+  return Math.round(Math.max(-3, Math.min(3, (pct - 0.5) * 4 + avgDiff)) * 10) / 10;
 }
 
-function getQuestionsForSection(section, count = 8) {
-  const pool = SAT_QUESTIONS[section] || [];
-  const shuffled = [...pool].sort(() => Math.random() - 0.5);
-  return shuffled.slice(0, Math.min(count, pool.length));
+function getNextDifficulty(domainSkills) {
+  const skill = domainSkills || 0;
+  if (skill < -0.5) return 1;
+  if (skill < 0.5) return 2;
+  return 3;
 }
 
-function calcSATScore(correctPct, section) {
-  // SAT score projection (400-800 per section, 800-1600 total)
-  const base = Math.round(200 + (correctPct / 100) * 600);
-  return Math.max(200, Math.min(800, base));
+function pickQuestion(domain, difficulty, usedIds) {
+  const bank = QUESTION_BANK[domain] || [];
+  const candidates = bank.filter(q => q.diff === difficulty && !usedIds.includes(domain + q.q));
+  if (candidates.length === 0) {
+    const fallback = bank.filter(q => !usedIds.includes(domain + q.q));
+    return fallback.length > 0 ? fallback[Math.floor(Math.random() * fallback.length)] : bank[Math.floor(Math.random() * bank.length)];
+  }
+  return candidates[Math.floor(Math.random() * candidates.length)];
 }
+
+const SECTION_TEMPLATES = [
+  { name: 'Math (No Calculator)', domains: ['algebra', 'advanced'], time: 25, count: 20 },
+  { name: 'Math (Calculator)', domains: ['algebra', 'data', 'geometry', 'advanced'], time: 55, count: 38 },
+  { name: 'Reading & Writing', domains: ['vocabulary', 'grammar', 'comprehension'], time: 65, count: 54 },
+];
+
+const COLORS = ['#7c3aed', '#06b6d4', '#10b981', '#f59e0b', '#ec4899', '#f97316', '#8b5cf6'];
 
 export default function SATAdaptive() {
   const { state, actions } = useApp();
-  const { satAdaptive = {}, profile } = state;
+  const { satAdaptive, profile, subjects } = state;
 
-  const [phase, setPhase] = useState('setup'); // setup | session | results | history
-  const [section, setSection] = useState('Math - Algebra');
+  const [mode, setMode] = useState('menu'); // menu | diagnostic | practice | review | vocab | formula | timed
   const [questions, setQuestions] = useState([]);
   const [qIdx, setQIdx] = useState(0);
   const [selected, setSelected] = useState(null);
-  const [showExp, setShowExp] = useState(false);
-  const [answers, setAnswers] = useState([]);
+  const [showAnswer, setShowAnswer] = useState(false);
+  const [results, setResults] = useState([]);
+  const [domainSkills, setDomainSkills] = useState(() => satAdaptive?.domainSkills || {});
+  const [history, setHistory] = useState(() => satAdaptive?.history || []);
+  const [timedSession, setTimedSession] = useState(null);
   const [timeLeft, setTimeLeft] = useState(0);
-  const [timedMode, setTimedMode] = useState(false);
-  const [currentDiff, setCurrentDiff] = useState(1.5);
-  const [sessionHistory, setSessionHistory] = useState(satAdaptive.history || []);
+  const [activeTab, setActiveTab] = useState('overview'); // overview | progress | weak | vocab | formula
+  const [vocabIndex, setVocabIndex] = useState(0);
+  const [vocabCards, setVocabCards] = useState([]);
+  const [vocabSide, setVocabSide] = useState('term');
+  const [currentDomain, setCurrentDomain] = useState('algebra');
+  const [section, setSection] = useState(null);
+  const [studyPlan, setStudyPlan] = useState([]);
   const timerRef = useRef(null);
 
-  const mathSections = ALL_SECTIONS.filter(s => s.startsWith('Math'));
-  const rwSections = ALL_SECTIONS.filter(s => s.startsWith('Reading'));
+  const historyData = useMemo(() => {
+    const h = history || [];
+    return h.slice(-20).map((r, i) => ({
+      name: `Q${i + 1}`,
+      correct: r.correct ? 1 : 0,
+      difficulty: r.difficulty || 1,
+    }));
+  }, [history]);
 
-  function startSession() {
-    const qs = getQuestionsForSection(section, 8);
+  const domainChartData = useMemo(() => {
+    return DOMAINS.map(d => ({
+      domain: d.label,
+      mastery: Math.round(((domainSkills[d.id] || 0) + 3) / 6 * 100),
+      fullMark: 100,
+    }));
+  }, [domainSkills]);
+
+  const totalAnswered = results.length;
+  const totalCorrect = results.filter(r => r.correct).length;
+  const accuracy = totalAnswered > 0 ? Math.round((totalCorrect / totalAnswered) * 100) : 0;
+
+  useEffect(() => {
+    if (timedSession && timeLeft > 0) {
+      timerRef.current = setTimeout(() => setTimeLeft(t => t - 1), 1000);
+      return () => clearTimeout(timerRef.current);
+    }
+    if (timedSession && timeLeft === 0 && questions.length > results.length) {
+      finishTimedSection();
+    }
+  }, [timeLeft, timedSession]);
+
+  useEffect(() => {
+    actions.updateSATAdaptive({ domainSkills, history });
+    generateStudyPlan();
+  }, [domainSkills, history]);
+
+  useEffect(() => {
+    const stored = new Set();
+    const cards = [];
+    [...QUESTION_BANK.vocabulary, ...QUESTION_BANK.grammar].forEach(q => {
+      if (!stored.has(q.q)) {
+        stored.add(q.q);
+        cards.push({ term: q.q.replace(/^.*?(?:['"]([^'"]+)['"]|______|([A-Z][^,?\s]+)).*$/, '$1$2'), def: q.exp || q.opts[q.ans] });
+      }
+    });
+    const vocabWords = [
+      { term: 'Ubiquitous', def: 'Present everywhere at once' },
+      { term: 'Pragmatic', def: 'Dealing with things practically' },
+      { term: 'Ambiguous', def: 'Open to multiple interpretations' },
+      { term: 'Eloquent', def: 'Fluent and persuasive in speech' },
+      { term: 'Resilient', def: 'Able to recover quickly' },
+      { term: 'Conjecture', def: 'An opinion based on incomplete info' },
+      { term: 'Empirical', def: 'Based on observation or experience' },
+      { term: 'Paradigm', def: 'A typical example or pattern' },
+      { term: 'Synthesize', def: 'Combine elements into a coherent whole' },
+      { term: 'Hypothesize', def: 'Put forward as a tentative explanation' },
+      { term: 'Juxtapose', def: 'Place close together for comparison' },
+      { term: 'Elucidate', def: 'Make something clear; explain' },
+      { term: 'Ostracize', def: 'Exclude from a group' },
+      { term: 'Benevolent', def: 'Well-meaning and kindly' },
+      { term: 'Candid', def: 'Truthful and straightforward' },
+      { term: 'Ephemeral', def: 'Lasting a very short time' },
+      { term: 'Magnanimous', def: 'Very generous or forgiving' },
+      { term: 'Perpetuate', def: 'Cause to continue indefinitely' },
+      { term: 'Scrutinize', def: 'Examine very closely' },
+      { term: 'Tenacious', def: 'Holding firmly; persistent' },
+    ];
+    vocabWords.forEach(v => {
+      if (!stored.has(v.term)) {
+        stored.add(v.term);
+        cards.push({ term: v.term, def: v.def });
+      }
+    });
+    setVocabCards(cards);
+  }, []);
+
+  function generateStudyPlan() {
+    const weak = DOMAINS.filter(d => (domainSkills[d.id] || 0) < 0).map(d => d.id);
+    if (weak.length === 0) return;
+    const plan = weak.slice(0, 3).map((d, i) => {
+      const domain = DOMAINS.find(dm => dm.id === d);
+      return {
+        id: d,
+        label: domain?.label || d,
+        focus: i === 0 ? 'Priority - Do First' : i === 1 ? 'Next Session' : 'Review',
+        questions: 5,
+        estimatedMinutes: 10,
+      };
+    });
+    setStudyPlan(plan);
+  }
+
+  function startDiagnostic() {
+    const qs = [];
+    DOMAINS.forEach(d => {
+      const bank = QUESTION_BANK[d.id] || [];
+      bank.slice(0, 3).forEach(q => {
+        qs.push({ ...q, domain: d.id });
+      });
+    });
+    setQuestions(qs.sort(() => Math.random() - 0.5));
+    setQIdx(0);
+    setSelected(null);
+    setShowAnswer(false);
+    setResults([]);
+    setMode('diagnostic');
+    actions.addXP(5, 'Started SAT Diagnostic');
+  }
+
+  function startPractice(domain) {
+    setCurrentDomain(domain);
+    const bank = QUESTION_BANK[domain] || [];
+    const qs = bank.sort(() => Math.random() - 0.5).map(q => ({ ...q, domain }));
     setQuestions(qs);
     setQIdx(0);
     setSelected(null);
-    setShowExp(false);
-    setAnswers([]);
-    setCurrentDiff(1.5);
-    if (timedMode) {
-      setTimeLeft(qs.length * 75); // 75s per question
-    }
-    setPhase('session');
+    setShowAnswer(false);
+    setResults([]);
+    setMode('practice');
+    actions.addXP(3, 'Started SAT Practice');
   }
 
-  useEffect(() => {
-    if (phase === 'session' && timedMode && timeLeft > 0) {
-      timerRef.current = setTimeout(() => setTimeLeft(t => t - 1), 1000);
-    }
-    if (timedMode && timeLeft === 0 && phase === 'session' && answers.length > 0) {
-      finishSession();
-    }
-    return () => clearTimeout(timerRef.current);
-  }, [timeLeft, phase, timedMode]);
+  function startTimedSection(sectionIdx) {
+    const tmpl = SECTION_TEMPLATES[sectionIdx];
+    setSection(tmpl);
+    const qs = [];
+    tmpl.domains.forEach(d => {
+      const bank = QUESTION_BANK[d] || [];
+      const needed = Math.ceil(tmpl.count / tmpl.domains.length);
+      bank.slice(0, needed).forEach(q => qs.push({ ...q, domain: d }));
+    });
+    setQuestions(qs.sort(() => Math.random() - 0.5).slice(0, tmpl.count));
+    setQIdx(0);
+    setSelected(null);
+    setShowAnswer(false);
+    setResults([]);
+    setTimeLeft(tmpl.time * 60);
+    setTimedSession(tmpl);
+    setMode('timed');
+    actions.addXP(10, 'Started Timed SAT Section');
+  }
 
-  function handleSelect(idx) {
-    if (selected !== null) return;
+  function finishTimedSection() {
+    clearTimeout(timerRef.current);
+    markSession();
+  }
+
+  function handleAnswer(idx) {
+    if (showAnswer) return;
     setSelected(idx);
-    setShowExp(true);
+    setShowAnswer(true);
     const q = questions[qIdx];
+    if (!q) return;
     const correct = idx === q.ans;
-    setAnswers(prev => [...prev, { qId: q.id, selected: idx, correct, diff: q.diff }]);
-    setCurrentDiff(getNextDifficulty(currentDiff, correct));
+    const res = { domain: q.domain, correct, difficulty: q.diff || 1 };
+    setResults(prev => [...prev, res]);
+
+    const newSkills = { ...domainSkills };
+    const cur = newSkills[q.domain] || 0;
+    const delta = correct ? 0.15 : -0.12;
+    const diffBonus = (q.diff || 1) * 0.03;
+    newSkills[q.domain] = Math.max(-3, Math.min(3, cur + delta + (correct ? diffBonus : -diffBonus)));
+    setDomainSkills(newSkills);
+
+    const entry = {
+      section: DOMAINS.find(d => d.id === q.domain)?.label || q.domain,
+      correct,
+      difficulty: q.diff || 1,
+      timestamp: new Date().toISOString(),
+    };
+    setHistory(prev => [...prev, entry]);
+
+    const xp = correct ? 10 * (q.diff || 1) : 2;
+    actions.addXP(xp, correct ? 'SAT Correct' : 'SAT Attempt');
+    if (correct) actions.progressChallenge('flashcards', 1);
+    actions.checkBadges();
   }
 
-  function handleNext() {
-    if (qIdx < questions.length - 1) {
+  function nextQuestion() {
+    if (qIdx >= questions.length - 1) {
+      markSession();
+    } else {
       setQIdx(i => i + 1);
       setSelected(null);
-      setShowExp(false);
-    } else {
-      finishSession();
+      setShowAnswer(false);
     }
   }
 
-  function finishSession() {
-    clearTimeout(timerRef.current);
-    const correct = answers.filter(a => a.correct).length;
-    const total = answers.length || 1;
-    const pct = Math.round((correct / total) * 100);
-    const score = calcSATScore(pct, section);
-    const result = {
-      section, correct, total, pct, score,
-      date: new Date().toISOString(), diff: currentDiff
-    };
-    const newHistory = [result, ...(satAdaptive.history || [])].slice(0, 20);
-    setSessionHistory(newHistory);
-    actions.updateSATAdaptive({ history: newHistory });
-    actions.addXP(pct >= 80 ? 60 : pct >= 60 ? 35 : 15, 'SAT Practice');
-    actions.toast(`SAT Practice: ${pct}% → Projected ${score}/800`, 'success');
-    setPhase('results');
+  function markSession() {
+    const domainBreakdown = {};
+    results.forEach(r => {
+      if (!domainBreakdown[r.domain]) domainBreakdown[r.domain] = { correct: 0, total: 0 };
+      domainBreakdown[r.domain].correct += r.correct ? 1 : 0;
+      domainBreakdown[r.domain].total += 1;
+    });
+    Object.entries(domainBreakdown).forEach(([domain, stats]) => {
+      if (stats.total > 0) {
+        const ability = estimateAbility(stats.correct, stats.total, results.filter(r => r.domain === domain).reduce((a, r) => a + (r.difficulty || 1), 0));
+        const cur = domainSkills[domain] || 0;
+        setDomainSkills(prev => ({ ...prev, [domain]: (cur + ability) / 2 }));
+      }
+    });
+    const correct = results.filter(r => r.correct).length;
+    const total = results.length;
+    actions.addQuizResult({ score: Math.round((correct / Math.max(1, total)) * 100), subject: 'SAT Practice', total, correct });
+    actions.checkBadges();
+    setResults([]);
+    setMode('review');
+    actions.addXP(15, 'Completed SAT Session');
   }
 
-  // Aggregated SAT score across all history
-  const mathHistory = sessionHistory.filter(h => h.section?.startsWith('Math'));
-  const rwHistory = sessionHistory.filter(h => h.section?.startsWith('Reading'));
-  const mathAvg = mathHistory.length ? Math.round(mathHistory.reduce((a, h) => a + h.score, 0) / mathHistory.length) : 0;
-  const rwAvg = rwHistory.length ? Math.round(rwHistory.reduce((a, h) => a + h.score, 0) / rwHistory.length) : 0;
-  const totalSAT = mathAvg + rwAvg;
+  function resetSession() {
+    setQuestions([]);
+    setQIdx(0);
+    setSelected(null);
+    setShowAnswer(false);
+    setResults([]);
+    setMode('menu');
+    setTimedSession(null);
+    clearTimeout(timerRef.current);
+  }
 
-  const sectionRadar = ALL_SECTIONS.map(s => {
-    const hist = sessionHistory.filter(h => h.section === s);
-    const avg = hist.length ? Math.round(hist.reduce((a, h) => a + h.pct, 0) / hist.length) : 0;
-    return { section: s.split(' - ')[1] || s, score: avg };
-  });
-
-  const scoreTrend = sessionHistory.slice(0, 8).reverse().map((h, i) => ({
-    quiz: `#${i + 1}`, score: h.score, pct: h.pct
-  }));
+  function formatTime(seconds) {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m}:${s.toString().padStart(2, '0')}`;
+  }
 
   const currentQ = questions[qIdx];
-  const optColors = selected !== null
-    ? questions[qIdx]?.opts.map((_, i) => i === questions[qIdx].ans ? '#10b981' : i === selected ? '#ef4444' : null)
-    : [];
+  const sessionCorrect = results.filter(r => r.correct).length;
+  const sessionTotal = results.length;
+  const weakDomains = DOMAINS.filter(d => (domainSkills[d.id] || 0) < 0);
+  const strongDomains = DOMAINS.filter(d => (domainSkills[d.id] || 0) > 0.5);
 
-  if (phase === 'session' && currentQ) {
-    const progress = ((qIdx) / questions.length) * 100;
-    const mins = Math.floor(timeLeft / 60);
-    const secs = timeLeft % 60;
-
+  if (mode === 'diagnostic' || mode === 'practice' || mode === 'timed') {
+    if (!currentQ) {
+      return (
+        <div className="page-enter" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
+          <div className="glass-card" style={{ textAlign: 'center', padding: 'var(--space-10)' }}>
+            <div style={{ fontSize: 48, marginBottom: 16 }}>🧠</div>
+            <h2>Loading questions...</h2>
+            <button className="btn btn-secondary" onClick={resetSession} style={{ marginTop: 16 }}>Back to Menu</button>
+          </div>
+        </div>
+      );
+    }
     return (
-      <div className="page-enter">
-        {/* Progress bar */}
+      <div className="page-enter" style={{ maxWidth: 720, margin: '0 auto' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 'var(--space-6)' }}>
-          <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', minWidth: 60 }}>
-            {qIdx + 1}/{questions.length}
+          <span className={`badge ${mode === 'timed' ? 'badge-danger' : mode === 'diagnostic' ? 'badge-primary' : 'badge-success'}`}>
+            {mode === 'timed' ? 'TIMED' : mode === 'diagnostic' ? 'DIAGNOSTIC' : 'PRACTICE'}
           </span>
           <div style={{ flex: 1, height: 6, background: 'var(--bg-glass)', borderRadius: 99 }}>
-            <div style={{ height: '100%', width: `${progress}%`, background: 'var(--gradient-primary)', borderRadius: 99, transition: 'width 0.4s' }} />
+            <div style={{ height: '100%', width: `${((qIdx) / Math.max(1, questions.length)) * 100}%`, background: 'var(--gradient-primary)', borderRadius: 99, transition: 'width 0.3s' }} />
           </div>
-          <span className="badge badge-primary">{section}</span>
-          {timedMode && (
-            <span className={`badge ${timeLeft < 60 ? 'badge-danger' : 'badge-warning'}`}>
-              <Clock size={11} /> {mins}:{secs.toString().padStart(2, '0')}
+          <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>{qIdx + 1}/{questions.length}</span>
+          {mode === 'timed' && (
+            <span style={{ fontSize: 'var(--text-sm)', fontWeight: 700, color: timeLeft <= 60 ? '#ef4444' : timeLeft <= 300 ? '#f59e0b' : 'var(--accent-light)' }}>
+              <Clock size={14} style={{ display: 'inline', marginRight: 4 }} />{formatTime(timeLeft)}
             </span>
           )}
-          <button className="btn btn-ghost btn-sm" onClick={() => setPhase('setup')}>Quit</button>
+          <button className="btn btn-ghost btn-sm" onClick={resetSession}>Exit</button>
         </div>
 
-        {/* Difficulty indicator */}
-        <div style={{ display: 'flex', gap: 4, marginBottom: 'var(--space-4)', alignItems: 'center' }}>
-          <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)' }}>Difficulty:</span>
-          {[1, 2, 3].map(d => (
-            <div key={d} style={{
-              width: 24, height: 6, borderRadius: 3,
-              background: currentDiff >= d ? '#7c3aed' : 'var(--bg-glass)'
-            }} />
-          ))}
-          <span style={{ fontSize: 'var(--text-xs)', color: 'var(--primary-light)', marginLeft: 4 }}>
-            {currentDiff < 1.5 ? 'Easy' : currentDiff < 2.5 ? 'Medium' : 'Hard'}
-          </span>
-        </div>
-
-        {/* Question */}
-        <div className="glass-card" style={{ marginBottom: 'var(--space-6)', padding: 'var(--space-8)' }}>
-          <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)', marginBottom: 12, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-            Question {qIdx + 1} · SAT {section}
-          </p>
-          <h2 style={{ fontSize: 'var(--text-xl)', fontWeight: 600, lineHeight: 1.6 }}>
-            {currentQ.question || currentQ.q}
-          </h2>
-        </div>
-
-        {/* Options */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 'var(--space-6)' }}>
-          {currentQ.opts.map((opt, i) => (
-            <button key={i} onClick={() => handleSelect(i)} disabled={selected !== null} style={{
-              width: '100%', padding: '16px 20px', textAlign: 'left',
-              background: optColors[i] ? `${optColors[i]}18` : 'var(--bg-card)',
-              border: `2px solid ${optColors[i] || 'var(--border)'}`,
-              borderRadius: 'var(--radius-lg)', color: optColors[i] || 'var(--text-primary)',
-              fontWeight: optColors[i] ? 700 : 400, cursor: selected !== null ? 'default' : 'pointer',
-              fontSize: 'var(--text-base)', transition: 'all 0.2s', fontFamily: 'var(--font-body)',
-              display: 'flex', alignItems: 'center', gap: 12,
-            }}>
-              <span style={{
-                width: 30, height: 30, borderRadius: '50%', flexShrink: 0,
-                background: optColors[i] ? optColors[i] : 'var(--bg-glass)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 'var(--text-sm)', fontWeight: 800,
-                color: optColors[i] ? 'white' : 'var(--text-secondary)'
-              }}>
-                {optColors[i] ? (i === currentQ.ans ? <CheckCircle size={16} /> : <XCircle size={16} />) : String.fromCharCode(65 + i)}
-              </span>
-              {opt}
-            </button>
+        <div style={{ display: 'flex', gap: 8, marginBottom: 'var(--space-4)', flexWrap: 'wrap' }}>
+          {questions.map((q, i) => (
+            <div key={i} style={{
+              width: 24, height: 24, borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 11, fontWeight: 700,
+              background: i < results.length ? (results[i]?.correct ? 'rgba(16,185,129,0.3)' : 'rgba(239,68,68,0.3)') : i === qIdx ? 'rgba(124,58,237,0.3)' : 'var(--bg-glass)',
+              color: i < results.length ? (results[i]?.correct ? '#10b981' : '#ef4444') : i === qIdx ? '#8b5cf6' : 'var(--text-tertiary)',
+              cursor: 'pointer',
+            }}>{i + 1}</div>
           ))}
         </div>
 
-        {/* Explanation */}
-        {showExp && (
-          <div style={{ padding: 'var(--space-5)', background: 'rgba(6,182,212,0.08)', border: '1px solid rgba(6,182,212,0.2)', borderRadius: 'var(--radius-lg)', marginBottom: 'var(--space-5)', animation: 'slideUp 300ms ease-out' }}>
-            <p style={{ fontSize: 'var(--text-sm)', fontWeight: 700, color: 'var(--secondary-light)', marginBottom: 6 }}>
-              {selected === currentQ.ans ? '✅ Correct!' : '❌ Incorrect'} — Explanation
-            </p>
-            <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', lineHeight: 1.7 }}>{currentQ.exp}</p>
+        <div className="glass-card" style={{ padding: 'var(--space-8)', marginBottom: 'var(--space-6)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+            <span className="badge badge-primary">{DOMAINS.find(d => d.id === currentQ.domain)?.label || currentQ.domain}</span>
+            <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)' }}>
+              Difficulty: {'⭐'.repeat(currentQ.diff || 1)}
+            </span>
           </div>
-        )}
-
-        {selected !== null && (
-          <button className="btn btn-primary" style={{ width: '100%' }} onClick={handleNext}>
-            {qIdx < questions.length - 1 ? 'Next Question' : 'See Results'} <ChevronRight size={16} />
-          </button>
-        )}
-      </div>
-    );
-  }
-
-  if (phase === 'results') {
-    const correct = answers.filter(a => a.correct).length;
-    const pct = Math.round((correct / answers.length) * 100);
-    const projectedScore = calcSATScore(pct, section);
-    const grade = pct >= 90 ? 'Excellent!' : pct >= 75 ? 'Great Work!' : pct >= 60 ? 'Good Effort' : 'Keep Practicing';
-    const gradeColor = pct >= 75 ? 'var(--accent)' : pct >= 60 ? 'var(--warning)' : 'var(--danger)';
-
-    return (
-      <div className="page-enter">
-        <div className="glass-card" style={{ textAlign: 'center', padding: 'var(--space-10)', marginBottom: 'var(--space-6)' }}>
-          <div style={{ fontSize: 48, marginBottom: 16 }}>{pct >= 80 ? '🏆' : pct >= 60 ? '📈' : '💪'}</div>
-          <div style={{ fontSize: 'var(--text-3xl)', fontWeight: 900, color: gradeColor, marginBottom: 4 }}>{grade}</div>
-          <div style={{ fontSize: 'var(--text-2xl)', fontWeight: 700, margin: '8px 0' }}>{pct}% Correct</div>
-          <div style={{ fontSize: 'var(--text-base)', color: 'var(--text-secondary)', marginBottom: 16 }}>
-            {correct} of {answers.length} correct · {section}
-          </div>
-          <div style={{ display: 'inline-block', padding: '12px 32px', background: 'rgba(124,58,237,0.12)', border: '1px solid rgba(124,58,237,0.3)', borderRadius: 'var(--radius-xl)', marginBottom: 24 }}>
-            <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)', marginBottom: 4 }}>Projected SAT Section Score</div>
-            <div style={{ fontSize: 'var(--text-4xl)', fontWeight: 900, color: 'var(--primary-light)', fontFamily: 'var(--font-heading)' }}>{projectedScore}</div>
-            <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)' }}>/ 800</div>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'center', gap: 12, flexWrap: 'wrap' }}>
-            <button className="btn btn-primary" onClick={startSession}><RotateCcw size={15} /> Retry</button>
-            <button className="btn btn-secondary" onClick={() => setPhase('setup')}>New Session</button>
-            <button className="btn btn-ghost btn-sm" onClick={() => setPhase('history')}>View History</button>
-          </div>
-        </div>
-
-        {/* Question Review */}
-        <div className="glass-card">
-          <h3 style={{ marginBottom: 'var(--space-5)' }}>Question Review</h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {questions.map((q, i) => {
-              const ans = answers[i];
+          <h2 style={{ fontSize: 'var(--text-xl)', fontWeight: 600, lineHeight: 1.5, marginBottom: 24 }}>{currentQ.q}</h2>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {currentQ.opts.map((opt, i) => {
+              let bg = 'var(--bg-glass)';
+              let border = 'var(--border)';
+              let txt = 'var(--text-primary)';
+              if (showAnswer) {
+                if (i === currentQ.ans) { bg = 'rgba(16,185,129,0.15)'; border = '#10b981'; txt = '#10b981'; }
+                else if (i === selected && i !== currentQ.ans) { bg = 'rgba(239,68,68,0.15)'; border = '#ef4444'; txt = '#ef4444'; }
+              } else if (i === selected) { bg = 'rgba(124,58,237,0.15)'; border = '#7c3aed'; }
               return (
-                <div key={i} style={{ padding: 'var(--space-4)', borderRadius: 'var(--radius-md)', background: ans?.correct ? 'rgba(16,185,129,0.06)' : 'rgba(239,68,68,0.06)', border: `1px solid ${ans?.correct ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.2)'}` }}>
-                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-                    {ans?.correct ? <CheckCircle size={16} color="var(--accent)" style={{ flexShrink: 0, marginTop: 2 }} /> : <XCircle size={16} color="var(--danger)" style={{ flexShrink: 0, marginTop: 2 }} />}
-                    <div>
-                      <p style={{ fontSize: 'var(--text-sm)', fontWeight: 600, marginBottom: 4 }}>{q.q}</p>
-                      <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)' }}>
-                        <span style={{ color: 'var(--accent)' }}>✓ {q.opts[q.ans]}</span>
-                        {ans && !ans.correct && <span style={{ color: 'var(--danger)', marginLeft: 8 }}>✗ You: {q.opts[ans.selected]}</span>}
-                      </p>
-                    </div>
-                  </div>
-                </div>
+                <button key={i} onClick={() => handleAnswer(i)} disabled={showAnswer} style={{
+                  display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px',
+                  background: bg, border: `1px solid ${border}`, borderRadius: 'var(--radius-md)',
+                  color: txt, cursor: showAnswer ? 'default' : 'pointer', textAlign: 'left',
+                  fontSize: 'var(--text-sm)', transition: 'all 0.2s',
+                }}>
+                  <span style={{ width: 28, height: 28, borderRadius: '50%', background: i === selected ? 'rgba(124,58,237,0.2)' : 'var(--bg-glass)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, flexShrink: 0 }}>
+                    {String.fromCharCode(65 + i)}
+                  </span>
+                  <span style={{ flex: 1 }}>{opt}</span>
+                  {showAnswer && i === currentQ.ans && <CheckCircle size={18} color="#10b981" />}
+                  {showAnswer && i === selected && i !== currentQ.ans && <XCircle size={18} color="#ef4444" />}
+                </button>
               );
             })}
           </div>
         </div>
+
+        {showAnswer && (
+          <div className="glass-card" style={{
+            padding: 'var(--space-6)', marginBottom: 'var(--space-6)',
+            borderLeft: `4px solid ${selected === currentQ.ans ? '#10b981' : '#ef4444'}`,
+            background: selected === currentQ.ans ? 'rgba(16,185,129,0.06)' : 'rgba(239,68,68,0.06)',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+              {selected === currentQ.ans ? <CheckCircle size={20} color="#10b981" /> : <XCircle size={20} color="#ef4444" />}
+              <span style={{ fontWeight: 700, color: selected === currentQ.ans ? '#10b981' : '#ef4444' }}>
+                {selected === currentQ.ans ? 'Correct!' : 'Incorrect'}
+              </span>
+            </div>
+            <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', lineHeight: 1.6 }}><Lightbulb size={14} style={{ display: 'inline', marginRight: 4 }} />{currentQ.exp}</p>
+          </div>
+        )}
+
+        {showAnswer && (
+          <button className="btn btn-primary" style={{ width: '100%' }} onClick={nextQuestion}>
+            {qIdx < questions.length - 1 ? 'Next Question →' : 'See Results'}
+          </button>
+        )}
+
+        <div style={{ textAlign: 'center', marginTop: 12 }}>
+          <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)' }}>
+            Session: {sessionCorrect}/{sessionTotal} correct ({sessionTotal > 0 ? Math.round(sessionCorrect / sessionTotal * 100) : 0}%)
+          </span>
+        </div>
       </div>
     );
   }
 
-  // Setup / History view
-  return (
-    <div className="page-enter">
-      <div className="page-header">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
-          <div>
-            <h1>SAT Adaptive Practice <span>🎓</span></h1>
-            <p className="page-subtitle">AI-powered adaptive difficulty · IRT-based score projection</p>
-          </div>
-          {sessionHistory.length > 0 && (
-            <button className="btn btn-ghost btn-sm" onClick={() => setPhase(phase === 'history' ? 'setup' : 'history')}>
-              {phase === 'history' ? '← Back to Setup' : 'View History'}
-            </button>
-          )}
-        </div>
-      </div>
+  if (mode === 'review') {
+    return (
+      <div className="page-enter" style={{ maxWidth: 700, margin: '0 auto', textAlign: 'center' }}>
+        <div className="glass-card" style={{ padding: 'var(--space-10)' }}>
+          <div style={{ fontSize: 64, marginBottom: 16 }}>{accuracy >= 80 ? '🏆' : accuracy >= 60 ? '⭐' : '💪'}</div>
+          <h2 style={{ fontSize: 'var(--text-3xl)', marginBottom: 8 }}>Session Complete</h2>
+          <div style={{ fontSize: 'var(--text-5xl)', fontWeight: 900, fontFamily: 'var(--font-heading)', color: 'var(--primary-light)', marginBottom: 4 }}>{accuracy}%</div>
+          <p style={{ color: 'var(--text-secondary)', marginBottom: 24 }}>{sessionCorrect}/{sessionTotal} correct across {DOMAINS.filter(d => results.some(r => r.domain === d.id)).length} domains</p>
 
-      {/* SAT Score Projection */}
-      {(mathAvg > 0 || rwAvg > 0) && (
-        <div className="glass-card" style={{ marginBottom: 'var(--space-6)', background: 'rgba(124,58,237,0.06)', border: '1px solid rgba(124,58,237,0.2)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 }}>
-            <div>
-              <h3 style={{ fontSize: 'var(--text-lg)', marginBottom: 4 }}>📊 Your Projected SAT Score</h3>
-              <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>Based on your practice history</p>
-            </div>
-            <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: 'var(--text-5xl)', fontWeight: 900, fontFamily: 'var(--font-heading)', background: 'var(--gradient-primary)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-                {totalSAT || '—'}
-              </div>
-              <div style={{ fontSize: 'var(--text-sm)', color: 'var(--text-tertiary)' }}>/ 1600</div>
-            </div>
-            <div style={{ display: 'flex', gap: 24 }}>
-              <div style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: 'var(--text-2xl)', fontWeight: 800, color: 'var(--primary-light)' }}>{mathAvg || '—'}</div>
-                <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)' }}>Math</div>
-              </div>
-              <div style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: 'var(--text-2xl)', fontWeight: 800, color: 'var(--secondary-light)' }}>{rwAvg || '—'}</div>
-                <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)' }}>R&W</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      <div className="grid grid-2" style={{ gap: 'var(--space-6)' }}>
-        {/* Setup Card */}
-        <div className="glass-card">
-          <h3 style={{ marginBottom: 'var(--space-6)', fontSize: 'var(--text-xl)' }}>⚙️ Configure Session</h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-            <div>
-              <label className="label">Math Sections</label>
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 6 }}>
-                {mathSections.map(s => (
-                  <button key={s} onClick={() => setSection(s)}
-                    className={`btn btn-sm ${section === s ? 'btn-primary' : 'btn-secondary'}`}>
-                    {s.split(' - ')[1]}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div>
-              <label className="label">Reading & Writing</label>
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 6 }}>
-                {rwSections.map(s => (
-                  <button key={s} onClick={() => setSection(s)}
-                    className={`btn btn-sm ${section === s ? 'btn-primary' : 'btn-secondary'}`}>
-                    {s.split(' - ')[1]}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 'var(--space-3) var(--space-4)', background: 'var(--bg-glass)', borderRadius: 'var(--radius-md)' }}>
-              <input type="checkbox" id="timedMode" checked={timedMode} onChange={e => setTimedMode(e.target.checked)} style={{ width: 16, height: 16, accentColor: 'var(--primary)' }} />
-              <label htmlFor="timedMode" style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', cursor: 'pointer' }}>
-                <Clock size={14} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 6 }} />
-                Timed Mode (75 seconds/question)
-              </label>
-            </div>
-            <div style={{ padding: 12, background: 'rgba(124,58,237,0.08)', border: '1px solid rgba(124,58,237,0.2)', borderRadius: 'var(--radius-md)', fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>
-              🧠 Adaptive AI adjusts difficulty in real-time based on your performance
-            </div>
-            <button className="btn btn-primary btn-lg" onClick={startSession}>
-              <Brain size={18} /> Start Adaptive Practice
-            </button>
-          </div>
-        </div>
-
-        {/* Performance Overview */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}>
-          {sectionRadar.some(s => s.score > 0) ? (
-            <div className="glass-card">
-              <h3 style={{ marginBottom: 'var(--space-4)' }}>📊 Section Performance</h3>
-              <ResponsiveContainer width="100%" height={200}>
-                <RadarChart data={sectionRadar}>
+          {domainChartData.length > 0 && (
+            <div style={{ height: 200, marginBottom: 24 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <RadarChart data={domainChartData}>
                   <PolarGrid stroke="var(--border)" />
-                  <PolarAngleAxis dataKey="section" tick={{ fontSize: 10, fill: 'var(--text-tertiary)' }} />
-                  <Radar dataKey="score" stroke="#7c3aed" fill="#7c3aed" fillOpacity={0.25} dot />
+                  <PolarAngleAxis dataKey="domain" tick={{ fill: 'var(--text-secondary)', fontSize: 10 }} />
+                  <Radar dataKey="mastery" stroke="#7c3aed" fill="#7c3aed" fillOpacity={0.3} />
                 </RadarChart>
               </ResponsiveContainer>
             </div>
-          ) : (
-            <div className="glass-card" style={{ textAlign: 'center', padding: 'var(--space-10)' }}>
-              <div style={{ fontSize: 40, marginBottom: 12 }}>📚</div>
-              <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>Complete practice sessions to see your performance radar</p>
+          )}
+
+          {studyPlan.length > 0 && (
+            <div style={{ background: 'var(--bg-glass)', borderRadius: 'var(--radius-lg)', padding: 16, marginBottom: 24, textAlign: 'left' }}>
+              <h4 style={{ fontSize: 'var(--text-sm)', fontWeight: 700, marginBottom: 12 }}>📋 Recommended Study Plan</h4>
+              {studyPlan.map(p => (
+                <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid var(--border)' }}>
+                  <div>
+                    <span style={{ fontWeight: 600, fontSize: 'var(--text-sm)' }}>{p.label}</span>
+                    <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)', marginLeft: 8 }}>{p.focus}</span>
+                  </div>
+                  <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)' }}>{p.estimatedMinutes} min</span>
+                </div>
+              ))}
+              {weakDomains.map(d => (
+                <button key={d.id} className="btn btn-sm btn-secondary" style={{ marginTop: 8, marginRight: 8 }} onClick={() => startPractice(d.id)}>
+                  Practice {d.label}
+                </button>
+              ))}
             </div>
           )}
 
-          {/* Recent sessions */}
-          {sessionHistory.length > 0 && (
-            <div className="glass-card">
-              <h3 style={{ marginBottom: 'var(--space-4)' }}>🕐 Recent Sessions</h3>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {sessionHistory.slice(0, 4).map((h, i) => (
-                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderBottom: '1px solid var(--border)' }}>
-                    <div style={{ width: 40, height: 40, borderRadius: '50%', background: h.pct >= 75 ? 'rgba(16,185,129,0.15)' : 'rgba(245,158,11,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 'var(--text-sm)', color: h.pct >= 75 ? 'var(--accent)' : 'var(--warning)' }}>
-                      {h.score}
-                    </div>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600 }}>{h.section}</div>
-                      <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)' }}>{h.correct}/{h.total} correct · {new Date(h.date).toLocaleDateString()}</div>
-                    </div>
-                    <span className={`badge ${h.pct >= 75 ? 'badge-accent' : 'badge-warning'}`}>{h.pct}%</span>
-                  </div>
+          <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
+            <button className="btn btn-primary" onClick={resetSession}>Dashboard</button>
+            <button className="btn btn-secondary" onClick={() => startDiagnostic()}>New Diagnostic</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="page-enter">
+      <div className="page-header">
+        <h1>SAT Adaptive Agent <span>🧠</span></h1>
+        <p className="page-subtitle">AI-powered adaptive learning that targets your weak areas in real-time</p>
+      </div>
+
+      <div style={{ maxWidth: 900, margin: '0 auto' }}>
+        <div style={{ display: 'flex', gap: 16, marginBottom: 'var(--space-6)', flexWrap: 'wrap', justifyContent: 'center' }}>
+          {[
+            { label: 'Questions', value: history.length, icon: Brain, color: '#7c3aed' },
+            { label: 'Accuracy', value: `${accuracy}%`, icon: Target, color: '#10b981' },
+            { label: 'Weak Areas', value: weakDomains.length, icon: AlertTriangle, color: '#f59e0b' },
+            { label: 'Strong Areas', value: strongDomains.length, icon: Award, color: '#06b6d4' },
+          ].map(s => (
+            <div key={s.label} className="stat-card" style={{ flex: '1 1 140px', padding: 'var(--space-4)', textAlign: 'center' }}>
+              <div style={{ width: 36, height: 36, borderRadius: 10, background: `${s.color}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 6px' }}>
+                <s.icon size={18} color={s.color} />
+              </div>
+              <div style={{ fontSize: 'var(--text-2xl)', fontWeight: 800, color: s.color }}>{s.value}</div>
+              <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)' }}>{s.label}</div>
+            </div>
+          ))}
+        </div>
+
+        <div style={{ display: 'flex', gap: 12, marginBottom: 'var(--space-6)', flexWrap: 'wrap' }}>
+          {['overview', 'progress', 'weak', 'vocab', 'formula'].map(tab => (
+            <button key={tab} className={`btn btn-sm ${activeTab === tab ? 'btn-primary' : 'btn-ghost'}`} onClick={() => setActiveTab(tab)}>
+              {tab === 'overview' && 'Overview'}
+              {tab === 'progress' && 'Progress'}
+              {tab === 'weak' && 'Weak Areas'}
+              {tab === 'vocab' && 'Vocab Builder'}
+              {tab === 'formula' && 'Formula Sheet'}
+            </button>
+          ))}
+        </div>
+
+        {activeTab === 'overview' && (
+          <>
+            <div className="glass-card" style={{ padding: 'var(--space-6)', marginBottom: 'var(--space-6)' }}>
+              <h3 style={{ marginBottom: 16, fontSize: 'var(--text-base)' }}>🎯 Quick Actions</h3>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 12 }}>
+                <button className="btn btn-primary" onClick={startDiagnostic} style={{ padding: 16, height: 'auto' }}>
+                  <Brain size={24} style={{ display: 'block', margin: '0 auto 8px' }} />
+                  <div style={{ fontWeight: 700 }}>Full Diagnostic</div>
+                  <div style={{ fontSize: 'var(--text-xs)', opacity: 0.7 }}>Test all 7 domains</div>
+                </button>
+                <button className="btn btn-secondary" onClick={() => { const w = DOMAINS[Math.floor(Math.random() * DOMAINS.length)]; startPractice(w.id); }} style={{ padding: 16, height: 'auto' }}>
+                  <Zap size={24} style={{ display: 'block', margin: '0 auto 8px' }} />
+                  <div style={{ fontWeight: 700 }}>Quick Practice</div>
+                  <div style={{ fontSize: 'var(--text-xs)', opacity: 0.7 }}>Random domain</div>
+                </button>
+                {SECTION_TEMPLATES.map((s, i) => (
+                  <button key={i} className="btn btn-secondary" onClick={() => startTimedSection(i)} style={{ padding: 16, height: 'auto' }}>
+                    <Clock size={24} style={{ display: 'block', margin: '0 auto 8px' }} />
+                    <div style={{ fontWeight: 700 }}>{s.name}</div>
+                    <div style={{ fontSize: 'var(--text-xs)', opacity: 0.7 }}>{s.time} min • {s.count} questions</div>
+                  </button>
                 ))}
               </div>
             </div>
-          )}
+
+            {studyPlan.length > 0 && (
+              <div className="glass-card" style={{ padding: 'var(--space-6)', marginBottom: 'var(--space-6)', borderLeft: '4px solid #f59e0b' }}>
+                <h3 style={{ marginBottom: 12, fontSize: 'var(--text-base)' }}>📋 AI Study Coach — Recommended Focus</h3>
+                {studyPlan.map(p => (
+                  <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid var(--border)' }}>
+                    <div>
+                      <span style={{ fontWeight: 600, fontSize: 'var(--text-sm)' }}>{p.label}</span>
+                      <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)', marginLeft: 8 }}>{p.focus}</span>
+                    </div>
+                    <button className="btn btn-sm btn-primary" onClick={() => startPractice(p.id)}>Practice</button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="glass-card" style={{ padding: 'var(--space-6)', marginBottom: 'var(--space-6)' }}>
+              <h3 style={{ marginBottom: 16, fontSize: 'var(--text-base)' }}>🧠 Domain Mastery</h3>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: 12 }}>
+                {DOMAINS.map(d => {
+                  const skill = domainSkills[d.id] || 0;
+                  const pct = Math.round((skill + 3) / 6 * 100);
+                  const level = skill < -0.5 ? 'Weak' : skill < 0.5 ? 'Developing' : skill < 1.5 ? 'Proficient' : 'Mastered';
+                  const levelColor = skill < -0.5 ? '#ef4444' : skill < 0.5 ? '#f59e0b' : skill < 1.5 ? '#10b981' : '#06b6d4';
+                  return (
+                    <div key={d.id} style={{ background: 'var(--bg-glass)', borderRadius: 'var(--radius-lg)', padding: 12, cursor: 'pointer' }} onClick={() => startPractice(d.id)}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                        <span style={{ fontWeight: 600, fontSize: 'var(--text-sm)' }}>{d.icon} {d.label}</span>
+                        <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 99, background: `${levelColor}18`, color: levelColor, fontWeight: 600 }}>{level}</span>
+                      </div>
+                      <div style={{ height: 6, background: 'var(--bg-glass)', borderRadius: 99 }}>
+                        <div style={{ height: '100%', width: `${pct}%`, background: levelColor, borderRadius: 99, transition: 'width 0.5s' }} />
+                      </div>
+                      <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)', marginTop: 4 }}>{pct}% mastery • Click to practice</div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </>
+        )}
+
+        {activeTab === 'progress' && (
+          <div className="glass-card" style={{ padding: 'var(--space-6)', marginBottom: 'var(--space-6)' }}>
+            <h3 style={{ marginBottom: 16, fontSize: 'var(--text-base)' }}>📈 Performance Trends</h3>
+            {historyData.length > 0 ? (
+              <div style={{ height: 250, marginBottom: 24 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={historyData}>
+                    <defs><linearGradient id="colorC" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#7c3aed" stopOpacity={0.3} /><stop offset="95%" stopColor="#7c3aed" stopOpacity={0} /></linearGradient></defs>
+                    <XAxis dataKey="name" tick={{ fill: 'var(--text-tertiary)', fontSize: 10 }} />
+                    <YAxis domain={[0, 1]} tick={{ fill: 'var(--text-tertiary)', fontSize: 10 }} />
+                    <Tooltip contentStyle={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 8, color: 'var(--text-primary)' }} />
+                    <Area type="monotone" dataKey="correct" stroke="#7c3aed" fill="url(#colorC)" strokeWidth={2} />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            ) : (
+              <p style={{ textAlign: 'center', color: 'var(--text-tertiary)', padding: 40 }}>Complete some practice questions to see your progress trend.</p>
+            )}
+            <div style={{ height: 250 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <RadarChart data={domainChartData}>
+                  <PolarGrid stroke="var(--border)" />
+                  <PolarAngleAxis dataKey="domain" tick={{ fill: 'var(--text-secondary)', fontSize: 9 }} />
+                  <PolarAngleAxis />
+                  <Radar dataKey="mastery" stroke="#7c3aed" fill="#7c3aed" fillOpacity={0.3} />
+                </RadarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'weak' && (
+          <div className="glass-card" style={{ padding: 'var(--space-6)', marginBottom: 'var(--space-6)' }}>
+            <h3 style={{ marginBottom: 16, fontSize: 'var(--text-base)' }}>🎯 Weak Area Analysis</h3>
+            {weakDomains.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: 40 }}>
+                <div style={{ fontSize: 48, marginBottom: 16 }}>🌟</div>
+                <p style={{ color: 'var(--text-secondary)' }}>No weak areas detected! You're making great progress.</p>
+              </div>
+            ) : (
+              weakDomains.map(d => {
+                const skill = domainSkills[d.id] || 0;
+                const pct = Math.round((skill + 3) / 6 * 100);
+                const relatedTopics = {
+                  algebra: 'Linear equations, quadratics, systems, exponents, functions',
+                  data: 'Statistics, probability, scatterplots, tables, ratios',
+                  geometry: 'Shapes, angles, volume, area, coordinate geometry',
+                  advanced: 'Trigonometry, complex numbers, polynomials, logarithms',
+                  vocabulary: 'Context clues, word roots, prefixes, suffixes, tone',
+                  grammar: 'Subject-verb agreement, pronouns, modifiers, parallelism',
+                  comprehension: 'Main idea, inference, evidence, purpose, tone',
+                };
+                return (
+                  <div key={d.id} style={{ background: 'var(--bg-glass)', borderRadius: 'var(--radius-lg)', padding: 16, marginBottom: 12 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                      <span style={{ fontWeight: 700 }}>{d.icon} {d.label}</span>
+                      <span style={{ color: '#ef4444', fontWeight: 700, fontSize: 'var(--text-sm)' }}>{pct}%</span>
+                    </div>
+                    <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)', marginBottom: 8 }}>{relatedTopics[d.id] || 'Practice fundamentals'}</p>
+                    <button className="btn btn-sm btn-primary" onClick={() => startPractice(d.id)}>Practice Now</button>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        )}
+
+        {activeTab === 'vocab' && (
+          <div className="glass-card" style={{ padding: 'var(--space-6)', marginBottom: 'var(--space-6)' }}>
+            <h3 style={{ marginBottom: 16, fontSize: 'var(--text-base)' }}>📖 SAT Vocabulary Builder</h3>
+            <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
+              <button className="btn btn-sm btn-ghost" onClick={() => setVocabSide('term')}>Term → Definition</button>
+              <button className="btn btn-sm btn-ghost" onClick={() => setVocabSide('def')}>Definition → Term</button>
+              <button className="btn btn-sm btn-ghost" onClick={() => setVocabIndex(Math.floor(Math.random() * vocabCards.length))}>Random</button>
+            </div>
+            {vocabCards.length > 0 && (
+              <div style={{ textAlign: 'center', padding: 24 }}>
+                <div className="glass-card" style={{
+                  padding: 'var(--space-8)', cursor: 'pointer', minHeight: 160,
+                  display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center',
+                  background: 'rgba(124,58,237,0.06)', border: '2px solid rgba(124,58,237,0.2)',
+                }} onClick={() => setVocabSide(s => s === 'term' ? 'def' : 'term')}>
+                  <div style={{ fontSize: 'var(--text-2xl)', fontWeight: 800, color: 'var(--primary-light)', marginBottom: 8 }}>
+                    {vocabSide === 'term' ? vocabCards[vocabIndex]?.term : vocabCards[vocabIndex]?.def}
+                  </div>
+                  <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-tertiary)' }}>
+                    Click to flip • {vocabIndex + 1} of {vocabCards.length}
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: 12, justifyContent: 'center', marginTop: 16 }}>
+                  <button className="btn btn-secondary" onClick={() => setVocabIndex(i => Math.max(0, i - 1))} disabled={vocabIndex === 0}>Previous</button>
+                  <button className="btn btn-primary" onClick={() => setVocabIndex(i => Math.min(vocabCards.length - 1, i + 1))} disabled={vocabIndex >= vocabCards.length - 1}>Next</button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeTab === 'formula' && (
+          <div className="glass-card" style={{ padding: 'var(--space-6)', marginBottom: 'var(--space-6)' }}>
+            <h3 style={{ marginBottom: 16, fontSize: 'var(--text-base)' }}>📐 SAT Formula Reference</h3>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16 }}>
+              {[
+                { category: 'Algebra', formulas: [
+                  'Quadratic: x = (-b ± √(b²-4ac)) / 2a',
+                  'Slope: m = (y₂-y₁) / (x₂-x₁)',
+                  'Distance: d = √((x₂-x₁)²+(y₂-y₁)²)',
+                  'Midpoint: ((x₁+x₂)/2, (y₁+y₂)/2)',
+                ]},
+                { category: 'Geometry', formulas: [
+                  'Circle Area: A = πr²',
+                  'Circle Circumference: C = 2πr',
+                  'Triangle Area: A = ½bh',
+                  'Rectangle Area: A = lw',
+                  'Volume Box: V = lwh',
+                  'Cylinder Volume: V = πr²h',
+                ]},
+                { category: 'Data & Stats', formulas: [
+                  'Mean = sum / count',
+                  'Median = middle value when sorted',
+                  'Probability = favorable / total',
+                  'Percent: part = percent × whole',
+                ]},
+                { category: 'Advanced', formulas: [
+                  'Pythagorean: a² + b² = c²',
+                  'Exponents: a^m × a^n = a^(m+n)',
+                  'Slope-Intercept: y = mx + b',
+                  'sin²θ + cos²θ = 1',
+                ]},
+              ].map(section => (
+                <div key={section.category} style={{ background: 'var(--bg-glass)', borderRadius: 'var(--radius-lg)', padding: 16 }}>
+                  <h4 style={{ fontSize: 'var(--text-sm)', fontWeight: 700, marginBottom: 12, color: 'var(--primary-light)' }}>{section.category}</h4>
+                  {section.formulas.map((f, i) => (
+                    <div key={i} style={{ padding: '6px 0', borderBottom: i < section.formulas.length - 1 ? '1px solid var(--border)' : 'none', fontSize: 'var(--text-xs)', color: 'var(--text-secondary)', fontFamily: 'monospace' }}>
+                      {f}
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div className="glass-card" style={{ padding: 'var(--space-6)', textAlign: 'center' }}>
+          <h3 style={{ marginBottom: 8, fontSize: 'var(--text-base)' }}>🏁 Take a Full-Length Section</h3>
+          <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', marginBottom: 16 }}>Simulate real SAT conditions with timed sections</p>
+          <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
+            {SECTION_TEMPLATES.map((s, i) => (
+              <button key={i} className="btn btn-primary" onClick={() => startTimedSection(i)} style={{ padding: '12px 24px' }}>
+                {s.name} ({s.time} min)
+              </button>
+            ))}
+          </div>
         </div>
       </div>
-
-      {/* Score Trend Chart */}
-      {scoreTrend.length > 1 && (
-        <div className="glass-card" style={{ marginTop: 'var(--space-6)' }}>
-          <h3 style={{ marginBottom: 'var(--space-4)' }}>📈 Score Trend</h3>
-          <ResponsiveContainer width="100%" height={160}>
-            <AreaChart data={scoreTrend} margin={{ top: 5, right: 5, bottom: 0, left: -20 }}>
-              <defs>
-                <linearGradient id="satGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#7c3aed" stopOpacity={0.4} />
-                  <stop offset="95%" stopColor="#7c3aed" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <XAxis dataKey="quiz" tick={{ fontSize: 10, fill: 'var(--text-tertiary)' }} axisLine={false} tickLine={false} />
-              <YAxis domain={[200, 800]} tick={{ fontSize: 10, fill: 'var(--text-tertiary)' }} axisLine={false} tickLine={false} />
-              <Tooltip contentStyle={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: 8, fontSize: 12 }} />
-              <Area type="monotone" dataKey="score" stroke="#7c3aed" strokeWidth={2.5} fill="url(#satGrad)" dot={{ fill: '#7c3aed', r: 4 }} />
-            </AreaChart>
-          </ResponsiveContainer>
-        </div>
-      )}
     </div>
   );
 }

@@ -21,6 +21,8 @@ import Leaderboard from './pages/Leaderboard';
 import MicroLearning from './pages/MicroLearning';
 import ReadingTutor from './pages/ReadingTutor';
 import HabitTracker from './pages/HabitTracker';
+import MathSkillsBuilder from './pages/MathSkillsBuilder';
+import StudyCoach from './pages/StudyCoach';
 
 // Guard: redirect to /login if user hasn't set their name yet
 function AuthGuard({ children }) {
@@ -65,6 +67,8 @@ export default function App() {
             <Route path="micro-learning"    element={<MicroLearning />} />
             <Route path="reading-tutor"     element={<ReadingTutor />} />
             <Route path="habit-tracker"     element={<HabitTracker />} />
+            <Route path="math-skills"       element={<MathSkillsBuilder />} />
+            <Route path="study-coach"       element={<StudyCoach />} />
           </Route>
 
           {/* ── Catch-all ── */}

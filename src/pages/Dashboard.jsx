@@ -262,9 +262,13 @@ export default function Dashboard() {
               { label: 'Review Cards', icon: BookOpen, color: '#7c3aed', bg: 'rgba(124,58,237,0.12)', path: '/flashcards' },
               { label: 'Take Quiz', icon: Brain, color: '#ec4899', bg: 'rgba(236,72,153,0.12)', path: '/quiz' },
               { label: 'Start Timer', icon: Timer, color: '#f97316', bg: 'rgba(249,115,22,0.12)', path: '/timer' },
-              { label: 'New Note', icon: FileText, color: '#10b981', bg: 'rgba(16,185,129,0.12)', path: '/notes' },
-              { label: 'AI Tutor', icon: Zap, color: '#06b6d4', bg: 'rgba(6,182,212,0.12)', path: '/ai-tutor' },
-              { label: 'Analytics', icon: BarChart3, color: '#f59e0b', bg: 'rgba(245,158,11,0.12)', path: '/analytics' },
+              { label: 'Study Coach', icon: Target, color: '#10b981', bg: 'rgba(16,185,129,0.12)', path: '/study-coach' },
+              { label: 'SAT Practice', icon: GraduationCap, color: '#7c3aed', bg: 'rgba(124,58,237,0.12)', path: '/sat-adaptive' },
+              { label: 'Math Builder', icon: BarChart3, color: '#f59e0b', bg: 'rgba(245,158,11,0.12)', path: '/math-skills' },
+              { label: 'Reading Tutor', icon: BookOpen, color: '#06b6d4', bg: 'rgba(6,182,212,0.12)', path: '/reading-tutor' },
+              { label: '5-Min Burst', icon: Zap, color: '#f97316', bg: 'rgba(249,115,22,0.12)', path: '/micro-learning' },
+              { label: 'AI Tutor', icon: Brain, color: '#ec4899', bg: 'rgba(236,72,153,0.12)', path: '/ai-tutor' },
+              { label: 'Analytics', icon: TrendingUp, color: '#06b6d4', bg: 'rgba(6,182,212,0.12)', path: '/analytics' },
             ].map(a => (
               <button key={a.label} className="quick-action-btn" onClick={() => navigate(a.path)}>
                 <div className="action-icon" style={{ background: a.bg }}>
@@ -462,17 +466,25 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Quick Feature Links — extended */}
+      {/* Quick Feature Links — All 12+ Features */}
       <div className="grid grid-4" style={{ marginTop: 'var(--space-6)' }}>
         {[
-          { label: 'SAT Practice',    icon: GraduationCap, color: '#7c3aed', bg: 'rgba(124,58,237,0.1)',  path: '/sat-adaptive',      desc: 'Adaptive SAT engine',    badge: 'HOT' },
-          { label: 'Gap Analyzer',    icon: Search,         color: '#ef4444', bg: 'rgba(239,68,68,0.1)',   path: '/weakness-detector', desc: 'Find & fix weak spots',  badge: 'AI' },
-          { label: '5-Min Burst',     icon: Zap,            color: '#f59e0b', bg: 'rgba(245,158,11,0.1)',  path: '/micro-learning',    desc: 'Quick knowledge check', badge: 'NEW' },
-          { label: 'Leaderboard',     icon: Users,          color: '#10b981', bg: 'rgba(16,185,129,0.1)',  path: '/leaderboard',       desc: 'Compete with peers',    badge: 'NEW' },
-          { label: 'Reading Tutor',   icon: BookOpen,       color: '#06b6d4', bg: 'rgba(6,182,212,0.1)',   path: '/reading-tutor',     desc: 'SAT reading passages',  badge: 'NEW' },
-          { label: 'Habit Tracker',   icon: Activity,       color: '#ec4899', bg: 'rgba(236,72,153,0.1)', path: '/habit-tracker',     desc: 'Daily study habits',    badge: 'NEW' },
-          { label: 'Focus Sounds',    icon: Music2,         color: '#7c3aed', bg: 'rgba(124,58,237,0.1)',  path: '/focus-sounds',      desc: 'Ambient study music' },
-          { label: 'Weekly Report',   icon: ClipboardList,  color: '#10b981', bg: 'rgba(16,185,129,0.1)',  path: '/weekly-report',     desc: 'Your progress summary' },
+          { label: 'SAT Adaptive',   icon: GraduationCap, color: '#7c3aed', bg: 'rgba(124,58,237,0.1)',  path: '/sat-adaptive',      desc: 'Adaptive SAT agent' },
+          { label: 'Reading Tutor',  icon: BookOpen,       color: '#06b6d4', bg: 'rgba(6,182,212,0.1)',   path: '/reading-tutor',     desc: 'Comprehension + vocab' },
+          { label: 'Math Skills',    icon: BarChart3,      color: '#f59e0b', bg: 'rgba(245,158,11,0.1)',  path: '/math-skills',       desc: 'Diagnostic + lessons' },
+          { label: 'Study Coach',    icon: Target,         color: '#10b981', bg: 'rgba(16,185,129,0.1)',  path: '/study-coach',       desc: 'Weekly plans + goals' },
+          { label: 'Flashcards',     icon: BookOpen,       color: '#7c3aed', bg: 'rgba(124,58,237,0.1)',  path: '/flashcards',        desc: 'SM-2 spaced repetition' },
+          { label: 'Quiz',           icon: Brain,           color: '#ec4899', bg: 'rgba(236,72,153,0.1)', path: '/quiz',              desc: 'AI-generated quizzes' },
+          { label: 'AI Tutor',       icon: Zap,            color: '#06b6d4', bg: 'rgba(6,182,212,0.1)',   path: '/ai-tutor',          desc: 'Chat with 200+ topics' },
+          { label: 'Pomodoro Timer', icon: Timer,          color: '#f97316', bg: 'rgba(249,115,22,0.1)',  path: '/timer',            desc: 'Focus + break cycles' },
+          { label: 'Gap Analyzer',   icon: Search,          color: '#ef4444', bg: 'rgba(239,68,68,0.1)',   path: '/weakness-detector',desc: 'Find weak spots' },
+          { label: '5-Min Burst',    icon: Zap,            color: '#f59e0b', bg: 'rgba(245,158,11,0.1)',  path: '/micro-learning',    desc: 'Quick knowledge check' },
+          { label: 'Knowledge Graph',icon: Activity,       color: '#10b981', bg: 'rgba(16,185,129,0.1)',  path: '/knowledge-graph',   desc: 'Visual concept map' },
+          { label: 'Focus Sounds',   icon: Music2,         color: '#7c3aed', bg: 'rgba(124,58,237,0.1)',  path: '/focus-sounds',      desc: 'Ambient study music' },
+          { label: 'Habit Tracker',  icon: Activity,       color: '#ec4899', bg: 'rgba(236,72,153,0.1)', path: '/habit-tracker',     desc: 'Daily habits' },
+          { label: 'Leaderboard',    icon: Users,          color: '#10b981', bg: 'rgba(16,185,129,0.1)',  path: '/leaderboard',       desc: 'Compete with peers' },
+          { label: 'Weekly Report',  icon: ClipboardList,  color: '#06b6d4', bg: 'rgba(6,182,212,0.1)',   path: '/weekly-report',     desc: 'Progress summary' },
+          { label: 'Analytics',      icon: TrendingUp,     color: '#7c3aed', bg: 'rgba(124,58,237,0.1)',  path: '/analytics',         desc: 'Advanced insights' },
         ].map(a => (
           <div key={a.label} onClick={() => navigate(a.path)} style={{
             padding: 'var(--space-4)', background: a.bg,
