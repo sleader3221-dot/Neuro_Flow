@@ -1,0 +1,43 @@
+{
+  "name": "NeuroFlow AI — Adaptive Learning Intelligence",
+  "short_name": "NeuroFlow",
+  "description": "AI-powered flashcards, spaced repetition, quizzes, and analytics to supercharge your study sessions.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0a1a",
+  "theme_color": "#7c3aed",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["education", "productivity"],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "Flashcards",
+      "short_name": "Cards",
+      "description": "Review your due flashcards",
+      "url": "/flashcards",
+      "icons": [{ "src": "/favicon.svg", "sizes": "any" }]
+    },
+    {
+      "name": "AI Tutor",
+      "short_name": "Tutor",
+      "description": "Chat with your AI study tutor",
+      "url": "/ai-tutor",
+      "icons": [{ "src": "/favicon.svg", "sizes": "any" }]
+    },
+    {
+      "name": "Weekly Report",
+      "short_name": "Report",
+      "description": "View your weekly progress report",
+      "url": "/weekly-report",
+      "icons": [{ "src": "/favicon.svg", "sizes": "any" }]
+    }
+  ]
+}
